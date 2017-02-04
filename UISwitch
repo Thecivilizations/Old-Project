@@ -1,0 +1,250 @@
+--[[
+我也不知道为什么是90%仿的UISwitch
+Ver 1.2.6 By Civilization(破晓_年华)
+更新日志：
+Ver 1.2.6 微调
+Ver 1.2.5 不一定要滑动了，点击也可以切换
+Ver 1.2.2 微调
+Ver 1.2 完全重写
+用法：
+setup()里写
+xx=UISwitch(x位置，y位置，尺寸，初始状态)
+draw()里
+xx:draw()
+touched(touch)里
+xx:touched(touch)
+只需要访问xx.state
+这个值代表了开关状态
+]]
+UISwitch = class()
+
+function UISwitch:init(x,y,width,state)
+    -- you can accept and set parameters here
+    self.x = x
+    self.y = y
+    self.width = width or 61
+    self.height = self.width*(17/61)
+    self.stroke=color(230, 230, 230, 255)
+    self.lineStroke=color(233, 233, 233, 255)
+    self.backColor=color(255, 255, 255, 255)
+    self.color = color(24, 232, 7, 255)
+    self.buttonColor = color(255, 255, 255, 255)
+    self.buttonStroke = color(255, 255, 255, 255)
+    self.state=state or false
+    self.buttonWidth=0
+    self.backScale=1
+    self.ButtonX=self.x-self.width/2+self.height
+    self.isSliding=false
+    self.nowBackColor=self.backColor
+    self.nowColor=color(200, 200, 200, 255)
+    if self.state then
+        self.ButtonX=self.x+self.width/2-self.height
+        self.nowBackColor=self.color
+    end
+    self.shadow=getBlurCircle(self.height*2)
+    self.touchstate=0
+    self.tweens={
+    b=nil,
+    x=nil,
+    s=nil,
+    c=nil
+    }
+end
+
+function UISwitch:draw()
+    -- Codea does not automatically call this method
+    fill(self.stroke)
+    stroke(self.stroke)
+    circleRect(self.x,self.y,self.width-self.height*2,0,self.height+2)
+    fill(self.nowColor)
+    stroke(self.nowColor)
+    circleRect(self.x,self.y,self.width-self.height*2,0,self.height)
+    pushMatrix()
+    pushStyle()
+    translate(self.x,self.y)
+    scale(self.backScale)
+    fill(self.nowBackColor)
+    stroke(self.nowBackColor)
+    circleRect(0,0,self.width-self.height*2,0,self.height)
+    popMatrix()
+    popStyle()
+    sprite(self.shadow,self.ButtonX+2,self.y-2,self.buttonWidth+self.height*2.4,self.height*2.4)
+    fill(self.buttonStroke)
+    stroke(self.buttonStroke)
+    circleRect(self.ButtonX,self.y,self.buttonWidth,0,self.height-2)
+    fill(self.buttonColor)
+    stroke(self.buttonColor)
+    circleRect(self.ButtonX,self.y,self.buttonWidth,0,self.height-4)
+end
+
+function UISwitch:touched(touch)
+    -- Codea does not automatically call this method
+    --print(self.touchstate)
+    local tp=vec2(touch.x,touch.y)
+    if touch.state==BEGAN then
+        if tp:dist(vec2(self.ButtonX,self.y))<self.height then
+            self.touchstate=BEGAN
+            if self.state==false then
+                if self.tweens.b then
+                    tween.stop(self.tweens.b)
+                end
+                if self.tweens.x then
+                    tween.stop(self.tweens.x)
+                end
+                if self.tweens.s then
+                    tween.stop(self.tweens.s)
+                end
+                self.isSliding=true
+                self.tweens.b=tween(0.3,self,{buttonWidth=self.width/8})
+                self.tweens.x=tween(0.3,self,{ButtonX=self.ButtonX+self.width/16})
+                self.tweens.s=tween(0.3,self,{backScale=0})
+            end
+            if self.state==true then
+                if self.tweens.b then
+                    tween.stop(self.tweens.b)
+                end
+                if self.tweens.x then
+                    tween.stop(self.tweens.x)
+                end
+                if self.tweens.s then
+                    tween.stop(self.tweens.s)
+                end
+                self.isSliding=true
+                self.tweens.b=tween(0.3,self,{buttonWidth=self.width/8})
+                self.tweens.x=tween(0.3,self,{ButtonX=self.ButtonX-self.width/16})
+                self.tweens.s=tween(0.3,self,{backScale=0})
+            end
+        end
+    end
+    if touch.state==MOVING and self.isSliding then
+        self.touchstate=MOVING
+        --[[
+        if self.isSliding and touch.x>self.x-self.width/2-self.height/2+self.width/2 and touch.x<self.x+self.width/2+self.height/2-self.width/2 then
+            self.ButtonX = touch.x
+        elseif self.isSliding and touch.x<self.x-self.width/2-self.height/2+self.width/2 then
+            self.ButtonX = self.x-self.width/2+self.height+self.width/16
+        elseif self.isSliding and touch.x>self.x+self.width/2+self.height/2-self.width/2 then
+            self.ButtonX = self.x+self.width/2-self.height-self.width/16
+        end
+          ]]
+        if touch.x>self.x then
+            if self.tweens.x then
+                tween.stop(self.tweens.x)
+            end
+            self.tweens.x=tween(0.15,self,{ButtonX=self.x+self.width/2-self.height-self.width/16})
+            if self.tweens.c then
+                tween.stop(self.tweens.c)
+            end
+            self.tweens.c=tween(0.15,self.nowColor,{r=self.color.r,g=self.color.g,b=self.color.b})
+        else
+            if self.tweens.x then
+                tween.stop(self.tweens.x)
+            end
+            if self.tweens.c then
+                tween.stop(self.tweens.c)
+            end
+            self.tweens.c=tween(0.15,self.nowColor,{r=200,g=200,b=200})
+            self.tweens.x=tween(0.15,self,{ButtonX=self.x-self.width/2+self.height+self.width/16})
+        end
+    end
+    if touch.state==ENDED and self.isSliding then
+        self.isSliding=false
+        if self.touchstate==BEGAN then
+            if self.state==false then
+                if self.tweens.b then
+                    tween.stop(self.tweens.b)
+                end
+                if self.tweens.x then
+                    tween.stop(self.tweens.x)
+                end
+                if self.tweens.s then
+                    tween.stop(self.tweens.s)
+                end
+                self.nowBackColor=self.color
+                self.tweens.b=tween(0.3,self,{buttonWidth=0})
+                self.tweens.x=tween(0.3,self,{ButtonX=self.x+self.width/2-self.height})
+                self.tweens.s=tween(0.3,self,{backScale=1})
+                self.state=true
+            else
+                if self.tweens.b then
+                    tween.stop(self.tweens.b)
+                end
+                if self.tweens.x then
+                    tween.stop(self.tweens.x)
+                end
+                if self.tweens.s then
+                    tween.stop(self.tweens.s)
+                end
+                self.nowBackColor=self.backColor
+                self.tweens.b=tween(0.3,self,{buttonWidth=0})
+                self.tweens.x=tween(0.3,self,{ButtonX=self.x-self.width/2+self.height})
+                self.tweens.s=tween(0.3,self,{backScale=1})
+                self.state=false
+            end
+        elseif touch.x>self.x then
+            if self.tweens.b then
+                tween.stop(self.tweens.b)
+            end
+            if self.tweens.x then
+                tween.stop(self.tweens.x)
+            end
+            if self.tweens.s then
+                tween.stop(self.tweens.s)
+            end
+            self.nowBackColor=self.color
+            self.tweens.b=tween(0.3,self,{buttonWidth=0})
+            self.tweens.x=tween(0.3,self,{ButtonX=self.x+self.width/2-self.height})
+            self.tweens.s=tween(0.3,self,{backScale=1})
+            self.state=true
+        elseif touch.x<=self.x then
+            if self.tweens.b then
+                tween.stop(self.tweens.b)
+            end
+            if self.tweens.x then
+                tween.stop(self.tweens.x)
+            end
+            if self.tweens.s then
+                tween.stop(self.tweens.s)
+            end
+            self.nowBackColor=self.backColor
+            self.tweens.b=tween(0.3,self,{buttonWidth=0})
+            self.tweens.x=tween(0.3,self,{ButtonX=self.x-self.width/2+self.height})
+            self.tweens.s=tween(0.3,self,{backScale=1})
+            self.state=false
+        end
+    end
+end
+
+function getBlurCircle(radius)
+    local img=image(radius*2,radius*2)
+    strokeWidth(0)
+    setContext(img)
+    for i=0,255 do
+        fill(0, 0, 0, 1)
+        ellipse(radius,radius,radius*2/255*i)
+    end
+    setContext()
+    return img
+end
+
+function polygon(...)
+ --noSmooth()
+    local tab={...}
+    local m=mesh()
+    m.vertices=triangulate(tab)
+    m:setColors(fill())
+    m:draw()
+    for k,v in pairs(tab) do
+        if k>=2 then
+            line(v.x,v.y,tab[k-1].x,tab[k-1].y)
+        end
+        if k==#tab then
+            line(v.x,v.y,tab[1].x,tab[1].y)
+        end
+    end
+end
+--画长方形(圆角)
+function circleRect(x,y,width,height,radius)
+    strokeWidth(radius*2)
+    polygon(vec2(x-width/2,y-height/2),vec2(x-width/2,y+height/2),vec2(x+width/2,y+height/2),vec2(x+width/2,y-height/2))
+end
